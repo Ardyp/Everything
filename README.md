@@ -41,6 +41,13 @@ uvicorn main:app --reload
 - OpenAPI UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
+### Environment Variables
+
+The location service relies on the Google Maps API. Provide a valid
+`GOOGLE_MAPS_API_KEY` in your `.env` file. If `MOCK_LOCATION_SERVICE` is **not**
+set to `true` and the API key is missing or invalid, the application will raise
+a runtime error during startup.
+
 ## API Endpoints
 
 ### Smart Home (`/smart-home`)
