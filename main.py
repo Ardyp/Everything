@@ -4,6 +4,7 @@ import uvicorn
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from task_scheduler import router as scheduler_router, scheduler, add_scheduled_jobs
 from life_organizer.routers import reminders, appointments, location
 from smart_home.routers import home_control, events
 from inventory_manager.routers import inventory, receipts
@@ -46,6 +47,7 @@ app.include_router(receipts)
 app.include_router(system_info)
 app.include_router(file_system)
 app.include_router(process_mgmt)
+app.include_router(scheduler_router)
 
 @app.get("/")
 async def root():
@@ -59,6 +61,17 @@ async def root():
             "OS Manager (system info, file system, process management)"
         ]
     }
+
+
+@app.on_event("startup")
+async def start_scheduler():
+    add_scheduled_jobs()
+    scheduler.start()
+
+
+@app.on_event("shutdown")
+async def stop_scheduler():
+    scheduler.shutdown()
 
 if __name__ == "__main__":
     # Ensure required directories exist
