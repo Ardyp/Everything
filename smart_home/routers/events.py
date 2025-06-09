@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
+from sqlalchemy.orm import Session
+from models import Event as EventModel, get_db
 
 router = APIRouter(
     prefix="/events",
@@ -27,55 +29,59 @@ class Event(EventBase):
         from_attributes = True
 
 # Temporary in-memory storage
-events_db = []
-event_id_counter = 1
 
 @router.post("/", response_model=Event)
-async def create_event(event: EventCreate):
-    global event_id_counter
-    new_event = Event(
+async def create_event(event: EventCreate, db: Session = Depends(get_db)):
+    db_event = EventModel(
         **event.model_dump(),
-        id=event_id_counter,
         timestamp=datetime.now()
     )
-    events_db.append(new_event)
-    event_id_counter += 1
-    return new_event
+    db.add(db_event)
+    db.commit()
+    db.refresh(db_event)
+    return Event.model_validate(db_event)
 
 @router.get("/", response_model=List[Event])
 async def get_events(
     device_id: Optional[int] = None,
     event_type: Optional[str] = None,
     severity: Optional[str] = None,
-    limit: int = 100
+    limit: int = 100,
+    db: Session = Depends(get_db)
 ):
-    filtered_events = events_db
-    
+    query = db.query(EventModel)
     if device_id:
-        filtered_events = [e for e in filtered_events if e.device_id == device_id]
+        query = query.filter(EventModel.device_id == device_id)
     if event_type:
-        filtered_events = [e for e in filtered_events if e.event_type == event_type]
+        query = query.filter(EventModel.event_type == event_type)
     if severity:
-        filtered_events = [e for e in filtered_events if e.severity == severity]
-    
-    return filtered_events[-limit:]
+        query = query.filter(EventModel.severity == severity)
+    events = query.order_by(EventModel.timestamp.desc()).limit(limit).all()
+    return [Event.model_validate(e) for e in events]
 
 @router.get("/{event_id}", response_model=Event)
-async def get_event(event_id: int):
-    for event in events_db:
-        if event.id == event_id:
-            return event
-    raise HTTPException(status_code=404, detail="Event not found")
+async def get_event(event_id: int, db: Session = Depends(get_db)):
+    ev = db.query(EventModel).filter(EventModel.id == event_id).first()
+    if not ev:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return Event.model_validate(ev)
 
 @router.delete("/{event_id}")
-async def delete_event(event_id: int):
-    for i, event in enumerate(events_db):
-        if event.id == event_id:
-            del events_db[i]
-            return {"message": "Event deleted"}
-    raise HTTPException(status_code=404, detail="Event not found")
+async def delete_event(event_id: int, db: Session = Depends(get_db)):
+    ev = db.query(EventModel).filter(EventModel.id == event_id).first()
+    if not ev:
+        raise HTTPException(status_code=404, detail="Event not found")
+    db.delete(ev)
+    db.commit()
+    return {"message": "Event deleted"}
 
 @router.get("/device/{device_id}", response_model=List[Event])
-async def get_device_events(device_id: int, limit: int = 50):
-    device_events = [e for e in events_db if e.device_id == device_id]
-    return device_events[-limit:] 
+async def get_device_events(device_id: int, limit: int = 50, db: Session = Depends(get_db)):
+    events = (
+        db.query(EventModel)
+        .filter(EventModel.device_id == device_id)
+        .order_by(EventModel.timestamp.desc())
+        .limit(limit)
+        .all()
+    )
+    return [Event.model_validate(e) for e in events]

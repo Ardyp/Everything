@@ -5,12 +5,14 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from life_organizer.routers import reminders, appointments, location
+from models import Base, engine
 from smart_home.routers import home_control, events
 from inventory_manager.routers import inventory, receipts
 from os_manager.routers import system_info, file_system, process_mgmt
 
 # Load environment variables at startup
 load_dotenv()
+Base.metadata.create_all(bind=engine)
 
 # Create FastAPI app
 app = FastAPI(

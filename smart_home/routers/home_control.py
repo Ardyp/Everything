@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
+from sqlalchemy.orm import Session
+from models import Device as DeviceModel, get_db
 
 router = APIRouter(
     prefix="/home",
@@ -27,54 +29,55 @@ class Device(DeviceBase):
         from_attributes = True
 
 # Temporary in-memory storage
-devices_db = []
-device_id_counter = 1
 
 @router.post("/devices", response_model=Device)
-async def create_device(device: DeviceCreate):
-    global device_id_counter
-    new_device = Device(
+async def create_device(device: DeviceCreate, db: Session = Depends(get_db)):
+    db_device = DeviceModel(
         **device.model_dump(),
-        id=device_id_counter,
         last_updated=datetime.now()
     )
-    devices_db.append(new_device)
-    device_id_counter += 1
-    return new_device
+    db.add(db_device)
+    db.commit()
+    db.refresh(db_device)
+    return Device.model_validate(db_device)
 
 @router.get("/devices", response_model=List[Device])
-async def get_devices():
-    return devices_db
+async def get_devices(db: Session = Depends(get_db)):
+    devices = db.query(DeviceModel).all()
+    return [Device.model_validate(d) for d in devices]
 
 @router.get("/devices/{device_id}", response_model=Device)
-async def get_device(device_id: int):
-    for device in devices_db:
-        if device.id == device_id:
-            return device
-    raise HTTPException(status_code=404, detail="Device not found")
+async def get_device(device_id: int, db: Session = Depends(get_db)):
+    dev = db.query(DeviceModel).filter(DeviceModel.id == device_id).first()
+    if not dev:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return Device.model_validate(dev)
 
 @router.put("/devices/{device_id}/status/{new_status}")
-async def update_device_status(device_id: int, new_status: str):
-    for device in devices_db:
-        if device.id == device_id:
-            device.status = new_status
-            device.last_updated = datetime.now()
-            return {"message": f"Device status updated to {new_status}"}
-    raise HTTPException(status_code=404, detail="Device not found")
+async def update_device_status(device_id: int, new_status: str, db: Session = Depends(get_db)):
+    dev = db.query(DeviceModel).filter(DeviceModel.id == device_id).first()
+    if not dev:
+        raise HTTPException(status_code=404, detail="Device not found")
+    dev.status = new_status
+    dev.last_updated = datetime.now()
+    db.commit()
+    return {"message": f"Device status updated to {new_status}"}
 
 @router.put("/devices/{device_id}/settings")
-async def update_device_settings(device_id: int, settings: dict):
-    for device in devices_db:
-        if device.id == device_id:
-            device.settings.update(settings)
-            device.last_updated = datetime.now()
-            return {"message": "Device settings updated"}
-    raise HTTPException(status_code=404, detail="Device not found")
+async def update_device_settings(device_id: int, settings: dict, db: Session = Depends(get_db)):
+    dev = db.query(DeviceModel).filter(DeviceModel.id == device_id).first()
+    if not dev:
+        raise HTTPException(status_code=404, detail="Device not found")
+    dev.settings.update(settings)
+    dev.last_updated = datetime.now()
+    db.commit()
+    return {"message": "Device settings updated"}
 
 @router.delete("/devices/{device_id}")
-async def delete_device(device_id: int):
-    for i, device in enumerate(devices_db):
-        if device.id == device_id:
-            del devices_db[i]
-            return {"message": "Device deleted"}
-    raise HTTPException(status_code=404, detail="Device not found") 
+async def delete_device(device_id: int, db: Session = Depends(get_db)):
+    dev = db.query(DeviceModel).filter(DeviceModel.id == device_id).first()
+    if not dev:
+        raise HTTPException(status_code=404, detail="Device not found")
+    db.delete(dev)
+    db.commit()
+    return {"message": "Device deleted"}
