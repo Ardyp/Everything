@@ -8,6 +8,7 @@ from life_organizer.routers import reminders, appointments, location
 from smart_home.routers import home_control, events
 from inventory_manager.routers import inventory, receipts
 from os_manager.routers import system_info, file_system, process_mgmt
+from voice_assistant import router as voice_router
 
 # Load environment variables at startup
 load_dotenv()
@@ -46,6 +47,9 @@ app.include_router(receipts)
 app.include_router(system_info)
 app.include_router(file_system)
 app.include_router(process_mgmt)
+
+# Voice Assistant
+app.include_router(voice_router)
 
 @app.get("/")
 async def root():

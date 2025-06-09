@@ -12,4 +12,6 @@ passlib[bcrypt]>=1.7.4  # For password hashing
 googlemaps>=4.10.0  # For Google Maps integration
 timezonefinder>=6.2.0  # For getting timezone from coordinates
 pytz>=2024.1  # For timezone handling
-psutil>=5.9.0  # For system and process management 
+psutil>=5.9.0  # For system and process management
+openai>=1.0.0
+gTTS>=2.5.0

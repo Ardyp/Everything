@@ -11,6 +11,8 @@ export default function VoiceControl({ onCommand }: VoiceControlProps) {
   const [wakeWord, setWakeWord] = useState('agent');
   const [alwaysOn, setAlwaysOn] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
 
   useEffect(() => {
     // Initialize WebSocket connection
@@ -52,12 +54,44 @@ export default function VoiceControl({ onCommand }: VoiceControlProps) {
   }, [onCommand]);
 
   const toggleListening = async () => {
-    setIsListening(!isListening);
-    
-    if (!isListening) {
-      setStatus('Listening...');
+    if (isListening) {
+      mediaRecorderRef.current?.stop();
+      setIsListening(false);
+      setStatus('Processing...');
     } else {
-      setStatus('Stopped listening');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream);
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) chunksRef.current.push(e.data);
+        };
+        recorder.onstop = async () => {
+          const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+          chunksRef.current = [];
+          const form = new FormData();
+          form.append('audio', blob, 'command.webm');
+          try {
+            const res = await fetch('http://localhost:8000/voice/command', {
+              method: 'POST',
+              body: form,
+            });
+            const arrayBuffer = await res.arrayBuffer();
+            const url = URL.createObjectURL(new Blob([arrayBuffer]));
+            const audio = new Audio(url);
+            audio.play();
+          } catch (err) {
+            console.error('Voice command failed', err);
+          } finally {
+            setStatus('');
+          }
+        };
+        recorder.start();
+        mediaRecorderRef.current = recorder;
+        setIsListening(true);
+        setStatus('Listening...');
+      } catch (err) {
+        console.error('Could not access microphone', err);
+      }
     }
   };
 
