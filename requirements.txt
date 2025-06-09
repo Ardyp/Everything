@@ -1,0 +1,15 @@
+fastapi>=0.104.0
+uvicorn>=0.24.0
+pydantic>=2.4.2
+python-dotenv>=1.0.0
+pyttsx3>=2.90
+python-multipart>=0.0.6
+sqlalchemy>=2.0.0
+pytesseract>=0.3.10
+pillow>=10.0.0
+python-jose[cryptography]>=3.3.0  # For JWT auth
+passlib[bcrypt]>=1.7.4  # For password hashing
+googlemaps>=4.10.0  # For Google Maps integration
+timezonefinder>=6.2.0  # For getting timezone from coordinates
+pytz>=2024.1  # For timezone handling
+psutil>=5.9.0  # For system and process management 

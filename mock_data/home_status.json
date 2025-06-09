@@ -1,0 +1,32 @@
+{
+    "temperature": {
+        "living_room": 72,
+        "bedroom": 70,
+        "kitchen": 73
+    },
+    "lights": {
+        "living_room": "off",
+        "bedroom": "off",
+        "kitchen": "off",
+        "porch": "on"
+    },
+    "security": {
+        "front_door": "locked",
+        "back_door": "locked",
+        "windows": "closed",
+        "alarm_system": "armed"
+    },
+    "plants": {
+        "living_room_fern": {
+            "last_watered": "2024-03-20",
+            "moisture_level": "good",
+            "needs_water": false
+        },
+        "kitchen_herbs": {
+            "last_watered": "2024-03-18",
+            "moisture_level": "low",
+            "needs_water": true
+        }
+    },
+    "last_updated": "2024-03-21T10:00:00Z"
+} 
