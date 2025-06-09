@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from auth import require_admin_user
 from typing import List, Dict, Any, Optional
 import os
 import shutil
@@ -9,6 +10,7 @@ router = APIRouter(
     prefix="/files",
     tags=["file system"],
     responses={404: {"description": "Not found"}},
+    dependencies=[Depends(require_admin_user)],
 )
 
 def get_file_info(path: Path) -> Dict[str, Any]:
