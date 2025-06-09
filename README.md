@@ -32,12 +32,18 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. Run the application:
+3. Copy the example environment file and update values:
+```bash
+cp .env.example .env
+# then edit .env with your real API keys and settings
+```
+
+4. Run the application:
 ```bash
 uvicorn main:app --reload
 ```
 
-4. Access the API documentation:
+5. Access the API documentation:
 - OpenAPI UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
@@ -69,7 +75,8 @@ everything-app/
 │   └── inventory_manager/   # Inventory tracking
 ├── shared/                  # Shared utilities
 ├── requirements.txt         # Python dependencies
-├── .env                     # Configuration (create from template)
+├── .env.example             # Sample configuration
+├── .env                     # Configuration (copy from .env.example)
 └── mock_data/              # Mock data for development
 ```
 
