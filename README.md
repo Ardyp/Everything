@@ -89,3 +89,8 @@ everything-app/
 - Barcode scanning
 - Voice command processing
 - Commute monitoring with NJ Transit + Google Maps APIs 
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+
