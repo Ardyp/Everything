@@ -1,7 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
+from sqlalchemy.orm import Session
+from agents.inventory_manager.database import get_db, InventoryItemDB
+from agents.inventory_manager.models import ItemCategory, ItemUnit
 
 router = APIRouter(
     prefix="/inventory",
@@ -11,9 +14,9 @@ router = APIRouter(
 
 class ItemBase(BaseModel):
     name: str
-    category: str
+    category: ItemCategory
     quantity: int
-    unit: str = "pieces"  # pieces, kg, liters, etc.
+    unit: ItemUnit = ItemUnit.PIECES  # pieces, kg, liters, etc.
     location: Optional[str] = None
     min_quantity: Optional[int] = None
     notes: Optional[str] = None
@@ -29,70 +32,153 @@ class Item(ItemBase):
     class Config:
         from_attributes = True
 
-# Temporary in-memory storage
-items_db = []
-item_id_counter = 1
+# Database interactions via SQLAlchemy
 
 @router.post("/items", response_model=Item)
-async def create_item(item: ItemCreate):
-    global item_id_counter
-    new_item = Item(
-        **item.model_dump(),
-        id=item_id_counter,
+async def create_item(item: ItemCreate, db: Session = Depends(get_db)):
+    db_item = InventoryItemDB(
+        name=item.name,
+        category=item.category,
+        quantity=item.quantity,
+        unit=item.unit,
+        notes=item.notes,
+        low_stock_threshold=item.min_quantity or 0,
         last_updated=datetime.now(),
-        needs_restock=item.min_quantity is not None and item.quantity <= item.min_quantity
     )
-    items_db.append(new_item)
-    item_id_counter += 1
-    return new_item
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return Item(
+        **item.model_dump(),
+        id=db_item.id,
+        last_updated=db_item.last_updated,
+        needs_restock=db_item.quantity <= db_item.low_stock_threshold if db_item.low_stock_threshold else False,
+    )
 
 @router.get("/items", response_model=List[Item])
 async def get_items(
-    category: Optional[str] = None,
-    needs_restock: Optional[bool] = None
+    category: Optional[ItemCategory] = None,
+    needs_restock: Optional[bool] = None,
+    db: Session = Depends(get_db),
 ):
-    filtered_items = items_db
-    
+    query = db.query(InventoryItemDB)
+
     if category:
-        filtered_items = [i for i in filtered_items if i.category == category]
-    if needs_restock is not None:
-        filtered_items = [i for i in filtered_items if i.needs_restock == needs_restock]
-    
-    return filtered_items
+        query = query.filter(InventoryItemDB.category == category)
+    items = query.all()
+
+    results = []
+    for db_item in items:
+        restock = (
+            db_item.low_stock_threshold is not None
+            and db_item.quantity <= db_item.low_stock_threshold
+        )
+        if needs_restock is None or restock == needs_restock:
+            results.append(
+                Item(
+                    id=db_item.id,
+                    name=db_item.name,
+                    category=db_item.category,
+                    quantity=db_item.quantity,
+                    unit=db_item.unit,
+                    notes=db_item.notes,
+                    min_quantity=db_item.low_stock_threshold,
+                    last_updated=db_item.last_updated,
+                    needs_restock=restock,
+                )
+            )
+
+    return results
 
 @router.get("/items/{item_id}", response_model=Item)
-async def get_item(item_id: int):
-    for item in items_db:
-        if item.id == item_id:
-            return item
-    raise HTTPException(status_code=404, detail="Item not found")
+async def get_item(item_id: int, db: Session = Depends(get_db)):
+    db_item = db.query(InventoryItemDB).filter(InventoryItemDB.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    restock = (
+        db_item.low_stock_threshold is not None
+        and db_item.quantity <= db_item.low_stock_threshold
+    )
+    return Item(
+        id=db_item.id,
+        name=db_item.name,
+        category=db_item.category,
+        quantity=db_item.quantity,
+        unit=db_item.unit,
+        notes=db_item.notes,
+        min_quantity=db_item.low_stock_threshold,
+        last_updated=db_item.last_updated,
+        needs_restock=restock,
+    )
 
 @router.put("/items/{item_id}", response_model=Item)
-async def update_item(item_id: int, item: ItemCreate):
-    for i, existing_item in enumerate(items_db):
-        if existing_item.id == item_id:
-            updated_item = Item(
-                **item.model_dump(),
-                id=item_id,
-                last_updated=datetime.now(),
-                needs_restock=item.min_quantity is not None and item.quantity <= item.min_quantity
-            )
-            items_db[i] = updated_item
-            return updated_item
-    raise HTTPException(status_code=404, detail="Item not found")
+async def update_item(item_id: int, item: ItemCreate, db: Session = Depends(get_db)):
+    db_item = db.query(InventoryItemDB).filter(InventoryItemDB.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    for field, value in item.model_dump().items():
+        if field == "min_quantity":
+            setattr(db_item, "low_stock_threshold", value)
+        else:
+            setattr(db_item, field, value)
+    db_item.last_updated = datetime.now()
+    db.commit()
+    db.refresh(db_item)
+
+    restock = (
+        db_item.low_stock_threshold is not None
+        and db_item.quantity <= db_item.low_stock_threshold
+    )
+
+    return Item(
+        id=db_item.id,
+        name=db_item.name,
+        category=db_item.category,
+        quantity=db_item.quantity,
+        unit=db_item.unit,
+        notes=db_item.notes,
+        min_quantity=db_item.low_stock_threshold,
+        last_updated=db_item.last_updated,
+        needs_restock=restock,
+    )
 
 @router.delete("/items/{item_id}")
-async def delete_item(item_id: int):
-    for i, item in enumerate(items_db):
-        if item.id == item_id:
-            del items_db[i]
-            return {"message": "Item deleted"}
-    raise HTTPException(status_code=404, detail="Item not found")
+async def delete_item(item_id: int, db: Session = Depends(get_db)):
+    db_item = db.query(InventoryItemDB).filter(InventoryItemDB.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    db.delete(db_item)
+    db.commit()
+    return {"message": "Item deleted"}
 
 @router.get("/categories")
-async def get_categories():
-    return list(set(item.category for item in items_db))
+async def get_categories(db: Session = Depends(get_db)):
+    categories = db.query(InventoryItemDB.category).distinct().all()
+    return [c[0] for c in categories]
 
 @router.get("/low-stock", response_model=List[Item])
-async def get_low_stock_items():
-    return [item for item in items_db if item.needs_restock] 
+async def get_low_stock_items(db: Session = Depends(get_db)):
+    items = db.query(InventoryItemDB).all()
+    results = []
+    for db_item in items:
+        restock = (
+            db_item.low_stock_threshold is not None
+            and db_item.quantity <= db_item.low_stock_threshold
+        )
+        if restock:
+            results.append(
+                Item(
+                    id=db_item.id,
+                    name=db_item.name,
+                    category=db_item.category,
+                    quantity=db_item.quantity,
+                    unit=db_item.unit,
+                    notes=db_item.notes,
+                    min_quantity=db_item.low_stock_threshold,
+                    last_updated=db_item.last_updated,
+                    needs_restock=restock,
+                )
+            )
+    return results

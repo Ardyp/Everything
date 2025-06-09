@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from agents.life_organizer.database import get_db, ReminderDB
 
 router = APIRouter(
     prefix="/reminders",
@@ -26,59 +28,88 @@ class Reminder(ReminderBase):
     class Config:
         from_attributes = True
 
-# Temporary in-memory storage
-reminders_db = []
-reminder_id_counter = 1
+# Database backed storage
 
 @router.post("/", response_model=Reminder)
-async def create_reminder(reminder: ReminderCreate):
-    global reminder_id_counter
-    new_reminder = Reminder(
-        **reminder.model_dump(),
-        id=reminder_id_counter,
-        created_at=datetime.now()
+async def create_reminder(reminder: ReminderCreate, db: Session = Depends(get_db)):
+    db_reminder = ReminderDB(
+        title=reminder.title,
+        description=reminder.description,
+        due_date=reminder.due_date,
+        priority=reminder.priority,
+        completed=False,
+        created_at=datetime.now(),
     )
-    reminders_db.append(new_reminder)
-    reminder_id_counter += 1
-    return new_reminder
+    db.add(db_reminder)
+    db.commit()
+    db.refresh(db_reminder)
+    return Reminder(**reminder.model_dump(), id=db_reminder.id, created_at=db_reminder.created_at)
 
 @router.get("/", response_model=List[Reminder])
-async def get_reminders():
-    return reminders_db
+async def get_reminders(db: Session = Depends(get_db)):
+    reminders = db.query(ReminderDB).all()
+    return [
+        Reminder(
+            id=r.id,
+            title=r.title,
+            description=r.description,
+            due_date=r.due_date,
+            priority=r.priority,
+            created_at=r.created_at,
+            completed=r.completed,
+        )
+        for r in reminders
+    ]
 
 @router.get("/{reminder_id}", response_model=Reminder)
-async def get_reminder(reminder_id: int):
-    for reminder in reminders_db:
-        if reminder.id == reminder_id:
-            return reminder
-    raise HTTPException(status_code=404, detail="Reminder not found")
+async def get_reminder(reminder_id: int, db: Session = Depends(get_db)):
+    r = db.query(ReminderDB).filter(ReminderDB.id == reminder_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+    return Reminder(
+        id=r.id,
+        title=r.title,
+        description=r.description,
+        due_date=r.due_date,
+        priority=r.priority,
+        created_at=r.created_at,
+        completed=r.completed,
+    )
 
 @router.put("/{reminder_id}", response_model=Reminder)
-async def update_reminder(reminder_id: int, reminder: ReminderCreate):
-    for i, existing_reminder in enumerate(reminders_db):
-        if existing_reminder.id == reminder_id:
-            updated_reminder = Reminder(
-                **reminder.model_dump(),
-                id=reminder_id,
-                created_at=existing_reminder.created_at,
-                completed=existing_reminder.completed
-            )
-            reminders_db[i] = updated_reminder
-            return updated_reminder
-    raise HTTPException(status_code=404, detail="Reminder not found")
+async def update_reminder(reminder_id: int, reminder: ReminderCreate, db: Session = Depends(get_db)):
+    db_reminder = db.query(ReminderDB).filter(ReminderDB.id == reminder_id).first()
+    if not db_reminder:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+
+    for field, value in reminder.model_dump().items():
+        setattr(db_reminder, field, value)
+    db.commit()
+    db.refresh(db_reminder)
+    return Reminder(
+        id=db_reminder.id,
+        title=db_reminder.title,
+        description=db_reminder.description,
+        due_date=db_reminder.due_date,
+        priority=db_reminder.priority,
+        created_at=db_reminder.created_at,
+        completed=db_reminder.completed,
+    )
 
 @router.delete("/{reminder_id}")
-async def delete_reminder(reminder_id: int):
-    for i, reminder in enumerate(reminders_db):
-        if reminder.id == reminder_id:
-            del reminders_db[i]
-            return {"message": "Reminder deleted"}
-    raise HTTPException(status_code=404, detail="Reminder not found")
+async def delete_reminder(reminder_id: int, db: Session = Depends(get_db)):
+    db_reminder = db.query(ReminderDB).filter(ReminderDB.id == reminder_id).first()
+    if not db_reminder:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+    db.delete(db_reminder)
+    db.commit()
+    return {"message": "Reminder deleted"}
 
 @router.post("/{reminder_id}/complete")
-async def complete_reminder(reminder_id: int):
-    for reminder in reminders_db:
-        if reminder.id == reminder_id:
-            reminder.completed = True
-            return {"message": "Reminder marked as completed"}
-    raise HTTPException(status_code=404, detail="Reminder not found") 
+async def complete_reminder(reminder_id: int, db: Session = Depends(get_db)):
+    db_reminder = db.query(ReminderDB).filter(ReminderDB.id == reminder_id).first()
+    if not db_reminder:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+    db_reminder.completed = True
+    db.commit()
+    return {"message": "Reminder marked as completed"}
