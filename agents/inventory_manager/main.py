@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Depends
 from typing import Dict, List, Optional, Set, Any
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy.orm import Session
 import pytesseract
 from PIL import Image
@@ -114,7 +114,7 @@ async def get_snacks(
     
     if not include_expired:
         query = query.filter(
-            (InventoryItemDB.expiry_date == None) | 
+            (InventoryItemDB.expiry_date is None) |
             (InventoryItemDB.expiry_date > datetime.now())
         )
     
@@ -175,7 +175,7 @@ async def get_low_inventory(
     
     if exclude_expired:
         query = query.filter(
-            (InventoryItemDB.expiry_date == None) | 
+            (InventoryItemDB.expiry_date is None) |
             (InventoryItemDB.expiry_date > datetime.now())
         )
     

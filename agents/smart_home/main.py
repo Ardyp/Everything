@@ -4,7 +4,7 @@ import pyttsx3
 from datetime import datetime
 from sqlalchemy.orm import Session
 from .database import get_db, HomeStateDB, EventLogDB, log_event
-from .models import DeviceStatus, SecurityStatus, PlantStatus, Plant, HomeStatus
+from .models import DeviceStatus, SecurityStatus, Plant, HomeStatus
 
 router = APIRouter()
 
@@ -188,9 +188,10 @@ async def control_lights(
         if room not in home_status.lights:
             raise HTTPException(status_code=404, detail=f"Room '{room}' not found")
         
+        previous_status = home_status.lights[room]
         home_status.lights[room] = status
         home_status.last_updated = datetime.now()
-        
+
         # Save updated status
         new_state = HomeStateDB(
             temperature=home_status.temperature,
@@ -209,11 +210,11 @@ async def control_lights(
         )
         db.add(new_state)
         
-        # Log the light control event
+        # Log the light control event with the previous status
         log_event(db, "light_control", {
             "room": room,
             "status": status.value,
-            "previous_status": home_status.lights[room].value
+            "previous_status": previous_status.value
         })
         
         db.commit()

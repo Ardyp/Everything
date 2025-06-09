@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Dict, Any, Optional
-import os
+from typing import List, Dict, Any
 import shutil
 from pathlib import Path
 from datetime import datetime

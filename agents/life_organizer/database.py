@@ -3,7 +3,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 from datetime import datetime
-from typing import Optional
 from .models import ReminderPriority
 
 # Create database engine

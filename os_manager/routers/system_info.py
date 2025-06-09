@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
 import psutil
 import platform
-import os
 from datetime import datetime
 
 router = APIRouter(

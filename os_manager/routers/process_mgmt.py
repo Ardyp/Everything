@@ -3,7 +3,6 @@ from typing import List, Dict, Any, Optional
 import psutil
 import subprocess
 import sys
-import os
 from datetime import datetime
 
 router = APIRouter(
