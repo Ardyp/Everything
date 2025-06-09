@@ -32,12 +32,17 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. Run the application:
+3. Copy the example environment file and add your keys:
+```bash
+cp .env.example .env
+# Edit .env and populate GOOGLE_MAPS_API_KEY and other variables
+```
+4. Run the application:
 ```bash
 uvicorn main:app --reload
 ```
 
-4. Access the API documentation:
+5. Access the API documentation:
 - OpenAPI UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
