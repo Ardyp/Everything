@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
+from sqlalchemy.orm import Session
+from models import Item as ItemModel, get_db
 
 router = APIRouter(
     prefix="/inventory",
@@ -30,69 +32,69 @@ class Item(ItemBase):
         from_attributes = True
 
 # Temporary in-memory storage
-items_db = []
-item_id_counter = 1
 
 @router.post("/items", response_model=Item)
-async def create_item(item: ItemCreate):
-    global item_id_counter
-    new_item = Item(
+async def create_item(item: ItemCreate, db: Session = Depends(get_db)):
+    db_item = ItemModel(
         **item.model_dump(),
-        id=item_id_counter,
         last_updated=datetime.now(),
-        needs_restock=item.min_quantity is not None and item.quantity <= item.min_quantity
+        needs_restock=item.min_quantity is not None and item.quantity <= (item.min_quantity or 0)
     )
-    items_db.append(new_item)
-    item_id_counter += 1
-    return new_item
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return Item.model_validate(db_item)
 
 @router.get("/items", response_model=List[Item])
 async def get_items(
     category: Optional[str] = None,
-    needs_restock: Optional[bool] = None
+    needs_restock: Optional[bool] = None,
+    db: Session = Depends(get_db)
 ):
-    filtered_items = items_db
-    
+    query = db.query(ItemModel)
     if category:
-        filtered_items = [i for i in filtered_items if i.category == category]
+        query = query.filter(ItemModel.category == category)
     if needs_restock is not None:
-        filtered_items = [i for i in filtered_items if i.needs_restock == needs_restock]
-    
-    return filtered_items
+        query = query.filter(ItemModel.needs_restock == needs_restock)
+    items = query.all()
+    return [Item.model_validate(i) for i in items]
 
 @router.get("/items/{item_id}", response_model=Item)
-async def get_item(item_id: int):
-    for item in items_db:
-        if item.id == item_id:
-            return item
-    raise HTTPException(status_code=404, detail="Item not found")
+async def get_item(item_id: int, db: Session = Depends(get_db)):
+    item_obj = db.query(ItemModel).filter(ItemModel.id == item_id).first()
+    if not item_obj:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return Item.model_validate(item_obj)
 
 @router.put("/items/{item_id}", response_model=Item)
-async def update_item(item_id: int, item: ItemCreate):
-    for i, existing_item in enumerate(items_db):
-        if existing_item.id == item_id:
-            updated_item = Item(
-                **item.model_dump(),
-                id=item_id,
-                last_updated=datetime.now(),
-                needs_restock=item.min_quantity is not None and item.quantity <= item.min_quantity
-            )
-            items_db[i] = updated_item
-            return updated_item
-    raise HTTPException(status_code=404, detail="Item not found")
+async def update_item(item_id: int, item: ItemCreate, db: Session = Depends(get_db)):
+    db_item = db.query(ItemModel).filter(ItemModel.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    for key, value in item.model_dump().items():
+        setattr(db_item, key, value)
+    db_item.last_updated = datetime.now()
+    db_item.needs_restock = item.min_quantity is not None and item.quantity <= (item.min_quantity or 0)
+    db.commit()
+    db.refresh(db_item)
+    return Item.model_validate(db_item)
 
 @router.delete("/items/{item_id}")
-async def delete_item(item_id: int):
-    for i, item in enumerate(items_db):
-        if item.id == item_id:
-            del items_db[i]
-            return {"message": "Item deleted"}
-    raise HTTPException(status_code=404, detail="Item not found")
+async def delete_item(item_id: int, db: Session = Depends(get_db)):
+    db_item = db.query(ItemModel).filter(ItemModel.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    db.delete(db_item)
+    db.commit()
+    return {"message": "Item deleted"}
 
 @router.get("/categories")
-async def get_categories():
-    return list(set(item.category for item in items_db))
+async def get_categories(db: Session = Depends(get_db)):
+    categories = db.query(ItemModel.category).distinct().all()
+    return [c[0] for c in categories]
 
 @router.get("/low-stock", response_model=List[Item])
-async def get_low_stock_items():
-    return [item for item in items_db if item.needs_restock] 
+async def get_low_stock_items(db: Session = Depends(get_db)):
+    items = db.query(ItemModel).filter(ItemModel.needs_restock == True).all()
+    return [Item.model_validate(i) for i in items]
