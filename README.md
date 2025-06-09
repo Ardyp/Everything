@@ -12,7 +12,8 @@ A modular FastAPI application that demonstrates collaboration between three AI a
 ### 📅 Life Organizer
 - Manages reminders and appointments
 - Provides task summaries
-- (Future) Google Calendar integration
+- Syncs appointments from Google Calendar
+- Sends push notifications for upcoming tasks
 
 ### 📦 Inventory Manager
 - Tracks household inventory
@@ -83,7 +84,6 @@ everything-app/
 ## Future Enhancements
 
 - OpenAI integration for natural language processing
-- Google Calendar integration
 - Amazon Shopping API integration
 - Real OCR processing
 - Barcode scanning

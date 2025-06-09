@@ -4,7 +4,14 @@ import uvicorn
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-from life_organizer.routers import reminders, appointments, location
+from life_organizer.routers import (
+    reminders,
+    appointments,
+    location,
+    calendar,
+    notifications,
+)
+from life_organizer import scheduler as organizer_scheduler
 from smart_home.routers import home_control, events
 from inventory_manager.routers import inventory, receipts
 from os_manager.routers import system_info, file_system, process_mgmt
@@ -33,7 +40,11 @@ app.add_middleware(
 app.include_router(reminders)
 app.include_router(appointments)
 app.include_router(location)  # New location router
+app.include_router(calendar)
+app.include_router(notifications)
 
+# Start background scheduler for notifications
+organizer_scheduler.start()
 # Smart Home
 app.include_router(home_control)
 app.include_router(events)
@@ -53,7 +64,7 @@ async def root():
         "message": "Welcome to Everything App",
         "docs_url": "/docs",
         "modules": [
-            "Life Organizer (reminders, appointments, location)",
+            "Life Organizer (reminders, appointments, location, calendar, notifications)",
             "Smart Home (home control, events)",
             "Inventory Manager (inventory, receipts)",
             "OS Manager (system info, file system, process management)"
