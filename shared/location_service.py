@@ -29,21 +29,24 @@ class LocationService:
 
     def _initialize_clients(self) -> None:
         """Initialize API clients with proper error handling."""
-        if not self.mock_mode:
-            try:
-                api_key = os.getenv("GOOGLE_MAPS_API_KEY")
-                if not api_key:
-                    logger.warning("GOOGLE_MAPS_API_KEY not found in environment, falling back to mock mode")
-                    self.mock_mode = True
-                    return
-                    
-                self.gmaps = googlemaps.Client(key=api_key)
-                self.tf = TimezoneFinder()
-                logger.info("Successfully initialized Google Maps client")
-            except Exception as e:
-                logger.error(f"Failed to initialize Google Maps client: {str(e)}")
-                self.mock_mode = True
-                logger.warning("Falling back to mock mode due to initialization error")
+        if self.mock_mode:
+            logger.info("Mock mode enabled for LocationService")
+            return
+
+        api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+        if not api_key:
+            logger.error("GOOGLE_MAPS_API_KEY not found in environment")
+            raise RuntimeError(
+                "GOOGLE_MAPS_API_KEY is required when MOCK_LOCATION_SERVICE is not true"
+            )
+
+        try:
+            self.gmaps = googlemaps.Client(key=api_key)
+            self.tf = TimezoneFinder()
+            logger.info("Successfully initialized Google Maps client")
+        except Exception as e:
+            logger.error(f"Failed to initialize Google Maps client: {str(e)}")
+            raise RuntimeError("Failed to initialize Google Maps client") from e
 
     def _get_mock_location(self, address: str) -> Dict[str, Any]:
         """Generate mock location data for testing."""
