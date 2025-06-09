@@ -80,6 +80,15 @@ everything-app/
 - TTS uses pyttsx3 for welcome messages
 - In-memory storage is used for POC
 
+## Testing
+
+Run the unit tests with `pytest`:
+
+```bash
+pytest
+```
+
+
 ## Future Enhancements
 
 - OpenAI integration for natural language processing
