@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from pathlib import Path
@@ -8,6 +8,8 @@ from life_organizer.routers import reminders, appointments, location
 from smart_home.routers import home_control, events
 from inventory_manager.routers import inventory, receipts
 from os_manager.routers import system_info, file_system, process_mgmt
+from shared.auth import Token, login_for_access_token
+from fastapi.security import OAuth2PasswordRequestForm
 
 # Load environment variables at startup
 load_dotenv()
@@ -46,6 +48,12 @@ app.include_router(receipts)
 app.include_router(system_info)
 app.include_router(file_system)
 app.include_router(process_mgmt)
+
+# Authentication token endpoint
+@app.post("/token", response_model=Token)
+async def generate_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    """Issue JWT access tokens."""
+    return await login_for_access_token(form_data)
 
 @app.get("/")
 async def root():

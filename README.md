@@ -41,6 +41,32 @@ uvicorn main:app --reload
 - OpenAPI UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
+## Authentication
+
+Some endpoints require a valid JWT token. Default credentials can be provided
+through environment variables:
+
+```bash
+export ADMIN_USERNAME=admin
+export ADMIN_PASSWORD=admin
+export SECRET_KEY=mysecret
+```
+
+1. Obtain a token by sending a POST request to `/token` with `username` and
+   `password` form fields:
+
+```bash
+curl -X POST -F "username=$ADMIN_USERNAME" -F "password=$ADMIN_PASSWORD" \
+     http://localhost:8000/token
+```
+
+2. Use the returned `access_token` in the `Authorization` header to access
+   protected routes (`/process/*` and `/files/*`):
+
+```bash
+curl -H "Authorization: Bearer <token>" http://localhost:8000/process/list
+```
+
 ## API Endpoints
 
 ### Smart Home (`/smart-home`)
