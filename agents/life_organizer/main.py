@@ -94,9 +94,12 @@ async def get_summary(db: Session = Depends(get_db)) -> dict:
     now = datetime.now()
     
     # Get pending reminders
-    pending_reminders = db.query(ReminderDB).filter(
-        ReminderDB.completed == False
-    ).order_by(ReminderDB.due_date).all()
+    pending_reminders = (
+        db.query(ReminderDB)
+        .filter(ReminderDB.completed.is_(False))
+        .order_by(ReminderDB.due_date)
+        .all()
+    )
     
     # Get upcoming appointments
     upcoming_appointments = db.query(AppointmentDB).filter(
