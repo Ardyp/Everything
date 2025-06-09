@@ -32,12 +32,16 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. Run the application:
+3. Create a `.env` file in the repository root. All services load environment
+   variables from this file when they start. Add any required keys here before
+   running the app.
+
+4. Run the application:
 ```bash
 uvicorn main:app --reload
 ```
 
-4. Access the API documentation:
+5. Access the API documentation:
 - OpenAPI UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
