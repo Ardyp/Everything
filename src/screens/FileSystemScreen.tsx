@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Switch } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
+import { API_URL } from '../config';
 
 interface FileItem {
   name: string;
@@ -17,7 +18,7 @@ export default function FileSystemScreen() {
   const { data, isLoading, refetch } = useQuery<FileItem[]>({
     queryKey: ['files', currentPath],
     queryFn: async () => {
-      const response = await fetch(`http://localhost:8000/files?path=${encodeURIComponent(currentPath)}&show_hidden=${showHidden}`);
+      const response = await fetch(`${API_URL}/files?path=${encodeURIComponent(currentPath)}&show_hidden=${showHidden}`);
       return response.json();
     }
   });

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { MicrophoneIcon, StopIcon } from '@heroicons/react/24/solid';
+import { API_URL, WS_URL } from '../config';
 
 interface VoiceControlProps {
   onCommand: (command: string) => void;
@@ -15,7 +16,7 @@ export default function VoiceControl({ onCommand }: VoiceControlProps) {
   useEffect(() => {
     // Initialize WebSocket connection
     const connectWebSocket = () => {
-      const ws = new WebSocket('ws://localhost:8000/voice/ws');
+      const ws = new WebSocket(`${WS_URL}/voice/ws`);
 
       ws.onopen = () => {
         setStatus('Connected to voice service');
@@ -63,7 +64,7 @@ export default function VoiceControl({ onCommand }: VoiceControlProps) {
 
   const updateWakeWord = async () => {
     try {
-      const response = await fetch('http://localhost:8000/voice/wake-word', {
+      const response = await fetch(`${API_URL}/voice/wake-word`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
