@@ -58,6 +58,19 @@ class EventLogDB(Base):
     event_type = Column(String(50))  # e.g., "arrival", "light_control", "security_change"
     details = Column(JSON)  # Store event details as JSON
 
+
+class DeviceDB(Base):
+    """Database model for smart home devices"""
+    __tablename__ = "devices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100))
+    type = Column(String(50))
+    location = Column(String(100))
+    status = Column(SQLEnum(DeviceStatus), default=DeviceStatus.OFF)
+    settings = Column(JSON, default={})
+    last_updated = Column(DateTime, default=datetime.now)
+
 # Create tables
 Base.metadata.create_all(bind=engine)
 
