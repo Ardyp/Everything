@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
+import { API_URL } from '../config';
 
 interface SystemInfo {
   cpuUsage: number;
@@ -16,7 +17,7 @@ export default function SystemInfoScreen() {
   const { data, isLoading, refetch } = useQuery<SystemInfo>({
     queryKey: ['systemInfo'],
     queryFn: async () => {
-      const response = await fetch('http://localhost:8000/system/info');
+      const response = await fetch(`${API_URL}/system/info`);
       return response.json();
     }
   });

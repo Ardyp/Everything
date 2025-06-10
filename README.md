@@ -80,6 +80,13 @@ everything-app/
 - TTS uses pyttsx3 for welcome messages
 - In-memory storage is used for POC
 
+## Client Configuration
+
+The client applications read the FastAPI endpoint from environment variables.
+Create a `.env` file in the project root (see `.env.example`) and define
+`EXPO_PUBLIC_API_URL` to point to your API server. This works for both the web
+app (Expo web) and the native mobile build.
+
 ## Future Enhancements
 
 - OpenAI integration for natural language processing

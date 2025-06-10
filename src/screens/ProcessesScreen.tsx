@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
+import { API_URL } from '../config';
 
 interface Process {
   pid: number;
@@ -17,7 +18,7 @@ export default function ProcessesScreen() {
   const { data, isLoading, refetch } = useQuery<Process[]>({
     queryKey: ['processes'],
     queryFn: async () => {
-      const response = await fetch('http://localhost:8000/processes');
+      const response = await fetch(`${API_URL}/processes`);
       return response.json();
     },
     refetchInterval: 5000 // Refresh every 5 seconds
