@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from .database import get_db, ReminderDB, AppointmentDB
 from .models import ReminderPriority, Reminder, Appointment
 
-router = APIRouter()
+router = APIRouter(prefix="/organizer", tags=["life organizer"])
 
 @router.post("/reminder", response_model=Reminder)
 async def create_reminder(
@@ -111,6 +111,20 @@ async def get_summary(db: Session = Depends(get_db)) -> dict:
         "next_appointment": Appointment.from_orm(upcoming_appointments[0]).dict() if upcoming_appointments else None,
         "overdue_reminders": len([r for r in pending_reminders if r.due_date < now])
     }
+
+@router.get("/calendar", response_model=List[Appointment])
+async def get_calendar(
+    view: str = Query("day", pattern="^(day|week)$"),
+    db: Session = Depends(get_db)
+) -> List[Appointment]:
+    """Return appointments for today or the next 7 days."""
+    now = datetime.now()
+    end = now + (timedelta(days=7) if view == "week" else timedelta(days=1))
+    appointments = db.query(AppointmentDB).filter(
+        AppointmentDB.date >= now,
+        AppointmentDB.date < end
+    ).order_by(AppointmentDB.date).all()
+    return [Appointment.from_orm(a) for a in appointments]
 
 @router.put("/reminder/{reminder_id}/complete")
 async def complete_reminder(
