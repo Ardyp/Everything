@@ -1,0 +1,10 @@
+{
+  "lights": {
+    "kitchen": "off",
+    "living_room": "off"
+  },
+  "temperature": {
+    "kitchen": 72,
+    "living_room": 70
+  }
+}
