@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from auth import require_admin_user
 from typing import List, Dict, Any, Optional
 import psutil
 import subprocess
@@ -10,6 +11,7 @@ router = APIRouter(
     prefix="/process",
     tags=["process management"],
     responses={404: {"description": "Not found"}},
+    dependencies=[Depends(require_admin_user)],
 )
 
 def get_process_info(process: psutil.Process) -> Dict[str, Any]:

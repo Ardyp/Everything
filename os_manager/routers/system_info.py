@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from auth import require_admin_user
 from typing import List, Dict, Any
 import psutil
 import platform
@@ -9,6 +10,7 @@ router = APIRouter(
     prefix="/system",
     tags=["system"],
     responses={404: {"description": "Not found"}},
+    dependencies=[Depends(require_admin_user)],
 )
 
 @router.get("/info")

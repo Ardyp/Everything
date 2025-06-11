@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 import uvicorn
 from pathlib import Path
 import os
@@ -9,6 +10,7 @@ from agents.smart_home.main import router as smart_home_router
 from agents.inventory_manager.main import router as inventory_router
 from life_organizer.routers import location
 from os_manager.routers import system_info, file_system, process_mgmt
+from auth import router as auth_router
 
 # Load environment variables at startup
 load_dotenv()
@@ -20,14 +22,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add CORS middleware
+# Configure CORS and HTTPS
+allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+if os.getenv("ENV", "development").lower() == "production":
+    app.add_middleware(HTTPSRedirectMiddleware)
 
 # Include routers
 # Life Organizer
@@ -44,6 +49,9 @@ app.include_router(inventory_router, prefix="/inventory")
 app.include_router(system_info)
 app.include_router(file_system)
 app.include_router(process_mgmt)
+
+# Auth
+app.include_router(auth_router)
 
 @app.get("/")
 async def root():
