@@ -32,12 +32,14 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. Run the application:
+3. Configure environment variables like `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` and `GOOGLE_MAPS_API_KEY`.
+4. Run the application:
 ```bash
-uvicorn main:app --reload
+python main.py
 ```
+This command runs Uvicorn via the script. You can also call `uvicorn main:app --reload` directly.
 
-4. Access the API documentation:
+5. Access the API documentation:
 - OpenAPI UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
