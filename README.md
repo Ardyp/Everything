@@ -87,6 +87,15 @@ Create a `.env` file in the project root (see `.env.example`) and define
 `EXPO_PUBLIC_API_URL` to point to your API server. This works for both the web
 app (Expo web) and the native mobile build.
 
+## Mobile App
+
+For instructions on the mobile client, see
+[os-manager-mobile/README.md](os-manager-mobile/README.md).
+
+```bash
+cd os-manager-mobile && npm install && npx expo start
+```
+
 ## Future Enhancements
 
 - OpenAI integration for natural language processing
