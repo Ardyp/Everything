@@ -12,7 +12,9 @@ interface SystemInfo {
   };
 }
 
-const API_BASE_URL = 'http://192.168.86.28:8000';
+// Base URL for API requests. Falls back to localhost when the
+// EXPO_PUBLIC_API_URL environment variable isn't defined.
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 export async function fetchSystemInfo(): Promise<SystemInfo> {
   const response = await fetch(`${API_BASE_URL}/system/info`);

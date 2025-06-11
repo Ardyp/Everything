@@ -19,7 +19,8 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 ### Environment configuration
 
 Create a `.env` file in the project root and set `EXPO_PUBLIC_API_URL` to the
-address of your FastAPI server. See the repository's `.env.example` for a
+address of your FastAPI server. If this variable isn't set, the app will use
+`http://localhost:8000` by default. See the repository's `.env.example` for a
 template.
 
 In the output, you'll find options to open the app in a
