@@ -1,14 +1,17 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Dict, Any, Optional
 import os
 import shutil
 from pathlib import Path
 from datetime import datetime
 
+from shared.auth import get_current_user
+
 router = APIRouter(
     prefix="/files",
     tags=["file system"],
     responses={404: {"description": "Not found"}},
+    dependencies=[Depends(get_current_user)],
 )
 
 def get_file_info(path: Path) -> Dict[str, Any]:
