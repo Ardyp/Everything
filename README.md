@@ -87,6 +87,17 @@ Create a `.env` file in the project root (see `.env.example`) and define
 `EXPO_PUBLIC_API_URL` to point to your API server. This works for both the web
 app (Expo web) and the native mobile build.
 
+## Running the Mobile App
+
+The Expo project lives in the `os-manager-mobile` directory. To start the mobile
+client, run:
+
+```bash
+cd os-manager-mobile
+npx expo start
+```
+
+
 ## Future Enhancements
 
 - OpenAI integration for natural language processing
