@@ -1,0 +1,16 @@
+# Python caches
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+env/
+
+# Node modules
+node_modules/
+
+# Environment files
+.env
+
+# SQLite databases
+*.db
