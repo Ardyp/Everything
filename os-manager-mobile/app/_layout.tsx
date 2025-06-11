@@ -4,6 +4,7 @@ import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import VoiceCommandButton from '../components/VoiceCommandButton';
 import 'react-native-reanimated';
 
 import useColorScheme from '@/hooks/useColorScheme';
@@ -42,6 +43,7 @@ export default function RootLayout() {
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="auto" />
+        <VoiceCommandButton />
       </ThemeProvider>
     </QueryClientProvider>
   );

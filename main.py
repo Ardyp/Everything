@@ -9,6 +9,7 @@ from agents.smart_home.main import router as smart_home_router
 from agents.inventory_manager.main import router as inventory_router
 from life_organizer.routers import location
 from os_manager.routers import system_info, file_system, process_mgmt
+from voice_assistant import router as voice_router
 
 # Load environment variables at startup
 load_dotenv()
@@ -44,6 +45,9 @@ app.include_router(inventory_router, prefix="/inventory")
 app.include_router(system_info)
 app.include_router(file_system)
 app.include_router(process_mgmt)
+
+# Voice Assistant
+app.include_router(voice_router)
 
 @app.get("/")
 async def root():
